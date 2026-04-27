@@ -23,7 +23,7 @@ if __name__ == "__main__":
     agent = ReActAgent(llm=llm, tools=toolExecutor)
 
     # 5. 提问
-    question = "小米最新手机"
+    question = "华为最新手机"
 
     result = agent.run(question)
 
