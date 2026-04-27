@@ -1,6 +1,7 @@
 from tool import ToolExecutor
 from llmClient import HelloAgentsLLM
-from search import search
+from searchUtil import search
+import re
 
 # ReAct 提示词模板
 REACT_PROMPT_TEMPLATE = """
@@ -23,7 +24,7 @@ History: {history}
 """
 
 class ReActAgent:
-    def __init__(self, llm: HelloAgentsLLM, tools: ToolExecutor, maxSteps: int = 5):
+    def __init__(self, llm: HelloAgentsLLM, tools: ToolExecutor, maxSteps: int = 10):
         self.llm = llm
         self.tools = tools
         self.maxSteps = maxSteps
@@ -35,6 +36,7 @@ class ReActAgent:
         """
         self.history = [] # 每次运行时重置历史记录
         currentStep = 0
+        print(f"🚀 当前最大步数: {self.maxSteps}")
         while currentStep < self.maxSteps:
             currentStep += 1
             print(f"--- 第 {currentStep} 步 ---")
@@ -69,9 +71,14 @@ class ReActAgent:
             # 4. 执行Action
             if action.startswith("Finish"):
                 # 如果是Finish指令，提取最终答案并结束
-                finalAnswer = search.match(r"Finish\[(.*)\]", action).group(1)
-                print(f"🎉 最终答案: {finalAnswer}")
-                return finalAnswer
+                match = re.match(r"Finish\[(.*)\]", action, re.DOTALL)
+                if match:
+                    finalAnswer = match.group(1)
+                    print(f"🎉 最终答案: {finalAnswer}")
+                    return finalAnswer
+                else:
+                    print(f"警告:无法解析Finish指令: {action}")
+                    break
             
             toolName, toolInput = self.parseAction(action)
             if not toolName or not toolInput:
@@ -101,10 +108,10 @@ class ReActAgent:
         """
 
         # Thought: 匹配到 Action: 或文本末尾
-        thoughtMatch = search.search(r"Thought:\s*(.*?)(?=\nAction:|$)", text, search.DOTALL)
+        thoughtMatch = re.search(r"Thought:\s*(.*?)(?=\nAction:|$)", text, re.DOTALL)
 
         # Action: 匹配到文本末尾
-        actionMatch = search.search(r"Action:\s*(.*)", text, search.DOTALL)
+        actionMatch = re.search(r"Action:\s*(.*)", text, re.DOTALL)
 
         thought = thoughtMatch.group(1).strip() if thoughtMatch else None
         action = actionMatch.group(1).strip() if actionMatch else None
@@ -114,7 +121,7 @@ class ReActAgent:
         """解析Action字符串，提取工具名称和输入。
         """
 
-        match = search.match(r"(\w+)\[(.*)\]", actionText, search.DOTALL)
+        match = re.match(r"(\w+)\[(.*)\]", actionText, re.DOTALL)
         if match:
             return match.group(1), match.group(2)
         return None, None

@@ -1,5 +1,5 @@
 from tool import ToolExecutor
-from search import search
+from searchUtil import search
 
 # --- 工具初始化与使用示例 ---
 if __name__ == "__main__":
